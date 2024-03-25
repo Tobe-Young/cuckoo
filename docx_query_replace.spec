@@ -3,7 +3,7 @@
 
 a = Analysis(
     ['App.py'],
-    pathex=['.\\DocxUtils.py', '.\\Icon.py'],
+    pathex=['.\\DocxUtils.py', '.\\Icon.py', '.\\Runnables.py'],
     binaries=[],
     datas=[],
     hiddenimports=[],
@@ -21,7 +21,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='App',
+    name='docx_query_replace',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
