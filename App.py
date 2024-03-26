@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 from pathlib import Path
 from PyQt6.QtCore import Qt
