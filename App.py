@@ -174,14 +174,15 @@ class ChaTyWindow(QMainWindow):
         if self.is_searching_selected_file:
             return
         
-        self.is_searching_selected_file = True
-
         index = self.fileListWidget.currentRow()
         file_path = self.filtered_files_list[index]
         self.statusBar.showMessage(f"当前文件路径{file_path}")
-        self.filePreview.setHtml("检索当前选中文件内容中......")
         if self.find_text is None or self.find_text == "":
             return
+        
+        self.is_searching_selected_file = True
+        self.filePreview.setHtml("检索当前选中文件内容中......")
+  
         
         docxHelper = self.get_docx_helper(str(file_path))
         worker = DocxSearchWorker(docxHelper, self.find_text)
@@ -256,7 +257,11 @@ class ChaTyWindow(QMainWindow):
             fileItem = self.fileListWidget.item(index)
             if fileItem.checkState() == Qt.CheckState.Checked:
                 toReplaceFiles.append(self.filtered_files_list[index])
-
+        
+        if len(toReplaceFiles) == 0:
+            QMessageBox.information(self, "替换", "请先选择要替换的文件")
+            return
+        
         for docx in toReplaceFiles:
             docxHelper = self.get_docx_helper(docx)
             docxHelper.make_copy = self.make_file_copy
@@ -268,6 +273,8 @@ class ChaTyWindow(QMainWindow):
         
     def refresh_listwidget(self):
         self.docx_files = list(ChaTyWindow.search_docx_in_dir(self.selected_dir))
+        self.docx_dict.clear()
+        self.filtered_files_list = self.docx_files.copy()
         self.filePreview.setHtml("没有选择文件")
         self.fileListWidget.clear()
         for file in self.docx_files:

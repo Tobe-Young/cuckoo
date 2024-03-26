@@ -1,6 +1,49 @@
 # -*- coding: utf-8 -*-
 from docx import Document
+from typing import Dict, List
 
+class KeyChanger:
+    def __init__(self, p, key, value) -> None:
+        self.p = p
+        self.key = key
+        self.value = value
+        self.run_text = ""
+        self.runs_indexes: List = []
+        self.run_char_indexes: List = []
+        self.runs_to_change: Dict = {}
+
+    def _initialize(self) -> None:
+        run_index = 0
+        for run in self.p.runs:
+            self.run_text += run.text
+            self.runs_indexes += [run_index for _ in run.text]
+            self.run_char_indexes += [char_index for char_index, char in enumerate(run.text)]
+            run_index += 1
+
+    def replace(self) -> None:
+        self._initialize()
+        parsed_key_length = len(self.key)
+        index_to_replace = self.run_text.find(self.key)
+
+        for i in range(parsed_key_length):
+            index = index_to_replace + i
+            run_index = self.runs_indexes[index]
+            run = self.p.runs[run_index]
+            run_char_index = self.run_char_indexes[index]
+
+            if not self.runs_to_change.get(run_index):
+                self.runs_to_change[run_index] = [char for char_index, char in enumerate(run.text)]
+
+            run_to_change: Dict = self.runs_to_change.get(run_index)  # type: ignore[assignment]
+            if index == index_to_replace:
+                run_to_change[run_char_index] = self.value
+            else:
+                run_to_change[run_char_index] = ""
+
+        # make the real replace
+        for index, text in self.runs_to_change.items():
+            run = self.p.runs[index]
+            run.text = "".join(text)
 class DocxHelper:
     def __init__(self, docx_path, make_copy = False):
         try:
@@ -45,31 +88,10 @@ class DocxHelper:
                     self.find_replace_cell(cell, find_text, replace_text)
 
     def replace_in_paragrah(self, paragraph, search_text, replace_text):
-        full_text = paragraph.text
-        if search_text in full_text:
-            # 开始替换逻辑
-            start_index = full_text.find(search_text)
-            end_index = start_index + len(search_text)
-            current_index = 0
-            text_replaced = False
-
-            for run in paragraph.runs:
-                run_end_index = current_index + len(run.text)
-
-                if text_replaced or run_end_index < start_index:
-                    # 如果这个run完全在替换文本的前面，或者文本已经被替换，跳过
-                    current_index += len(run.text)
-                    continue
-
-                # 计算run中需要替换文本的部分
-                run_start_index = max(start_index - current_index, 0)
-                run_end_index = min(end_index - current_index, len(run.text))
-
-                # 替换文本
-                run.text = run.text[:run_start_index] + replace_text + run.text[run_end_index:]
-                
-                text_replaced = True
-                current_index += len(run.text)              
+        if search_text not in paragraph.text:
+            return
+        replacer = KeyChanger(paragraph, search_text, replace_text)
+        replacer.replace()
 
     def find_paragrahs(self, find_text):
         res = []
