@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 import sys
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
 from pathlib import Path
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QMainWindow,  QSplitter, QListWidget, QTextEdit, QHBoxLayout, QWidget
@@ -12,6 +15,7 @@ from docx import Document
 import DocxUtils
 import Icon
 from Runnables import Worker, DocxSearchWorker
+import Doc2PdfHelper
 
 class ChaTyWindow(QMainWindow):
     def __init__(self) -> None:
@@ -81,12 +85,18 @@ class ChaTyWindow(QMainWindow):
         self.input2.textChanged.connect(self.on_replace_text_changed)
         btnConfirm = QPushButton("开始替换")
         btnConfirm.clicked.connect(self.on_start_replacing)
+        
+        btnDoc2PdfConverter = QPushButton("doc批量转换")
+        btnDoc2PdfConverter.connect()
+
         inputLayout.addWidget(findTextLabel)
         inputLayout.addWidget(self.input1)
         inputLayout.addWidget(startSearchBtn)
         inputLayout.addWidget(replaceTextLbl)
         inputLayout.addWidget(self.input2)
         inputLayout.addWidget(btnConfirm)
+        inputLayout.addWidget(btnDoc2PdfConverter)
+        
 
         # 创建水平分割器
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -129,6 +139,25 @@ class ChaTyWindow(QMainWindow):
         x = (screen.width() - size.width()) / 2
         y = (screen.height() - size.height()) / 2
         self.move(int(x), int(y))
+    
+    def onClickConvertDoc2PDF(self):
+        curDirName = QFileDialog.getExistingDirectory(self, "请选择目录")
+        if curDirName:
+            print("Selected directory:", curDirName)
+            curPath = Path(curDirName)
+            curFolderName = curPath.name
+            parentPath = curPath.parent
+            destPath = curPath / f"{curFolderName}_converted"
+            destPath.mkdir(parents=True, exist_ok=True)
+            
+            worker = Doc2PdfHelper(curPath, destPath)
+            worker.signals.docx_search_finish.connect(self.onConvertFinish)
+            self.threadPool.start(worker)
+      
+    def onConvertFinish(self, success):
+        if success:
+            QMessageBox("转换完成")
+    
 
     def on_select_all_checkbox_state_changed(self, state):
         if self.is_select_all == (state == 2) :
